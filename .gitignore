@@ -1,6 +1,6 @@
 venv/
-transformers
-unilm
+transformers/
+unilm/
 extracted_text.png
 invoice.png
 invoice_easy.pdf
