@@ -13,9 +13,9 @@ def checkPath(path_: str, *paths, ext: str = '', errors: str = 'ignore') -> tupl
     Join the paths together, adds an extension if not already included
     in path, then checks if path exists.
 
-    :param path_: main file path, should be a str
-    :param paths: remaining file paths, should be a tuple[str]
-    :param ext: file extension, should be a str
+    :param path_: Main file path, should be a str
+    :param paths: Remaining file paths, should be a tuple[str]
+    :param ext: File extension, should be a str
     :param errors: Whether to 'ignore', 'warn' or 'raise' errors, should be str
     :return: path_, exist - tuple[str, bool]
     """
@@ -46,11 +46,10 @@ def joinPath(path_: str, *paths, ext: str = '') -> str:
     :param ext: File extension, should be a str
     :return: path_ - str
     """
-    path_ = os.path.join(path_, *paths)
-    path_ext = os.path.splitext(path_)[1]
+    path_, path_ext = os.path.splitext(os.path.join(path_, *paths))
     if ext and path_ext != ext:
-        path_ = path_[:-len(path_ext)] + (ext if ext and '.' in ext else f'.{ext}')
-    return path_
+        path_ext = (ext if ext and '.' in ext else f'.{ext}')
+    return path_ + path_ext
 
 
 def makePath(path_: str, *paths, errors: str = 'ignore') -> str:
@@ -77,8 +76,8 @@ def listPath(path_: str, *paths, ext: list | tuple | str = '', return_file_path:
 
     :param path_: Main file path, should be a str
     :param paths: Remaining file paths, should be a tuple[str]
-    :param ext: file extension, should be a list | tuple | str
-    :param return_file_path: whether to return file name or file path, should be a bool
+    :param ext: File extension, should be a list | tuple | str
+    :param return_file_path: Whether to return file name or file path, should be a bool
     :param errors: Whether to 'ignore', 'warn' or 'raise' errors, should be str
     :return: path_, files - tuple[str, list[str]]
     """
@@ -95,6 +94,28 @@ def listPath(path_: str, *paths, ext: list | tuple | str = '', return_file_path:
         if os.path.splitext(file)[1].replace('.', '') in ext:
             files.append(joinPath(path_, file) if return_file_path else file)
     return path_, files
+
+
+def sepPath(path_: str, direction: str = 'lr', max_split: int = 1) -> tuple:
+    """
+    Separate the path into left and right by direction and split size.
+
+    :param path_: Path to a folder or file, should be a str
+    :param direction: Whether to split the path from 'lr' or 'rl', should be str
+    :param max_split: The splitting size, should be an int
+    :return: left, right - tuple[str, str]
+    """
+    sep_path = path_.split('\\')
+    if max_split not in range(1, len(sep_path)):
+        raise ValueError(f"'max_split' must be within range of 1 and directory depth, got: {max_split}")
+
+    if direction == 'lr':
+        left, right = sep_path[:max_split], sep_path[max_split:]
+    elif direction == 'rl':
+        left, right = sep_path[:(len(sep_path) - max_split)], sep_path[(len(sep_path) - max_split):]
+    else:
+        raise ValueError("The parameter direction must be either 'lr' or 'rl'")
+    return '\\'.join(left), '\\'.join(right)
 
 
 def update(obj: object, kwargs: dict) -> object:
@@ -125,7 +146,7 @@ def load(dir_: str, name: str, ext: str = '', errors: str = 'raise') -> Any:
 
     :param dir_: Directory of file, should be a str
     :param name: Name of file, should be a str
-    :param ext: file extension, should be a str
+    :param ext: File extension, should be a str
     :param errors: Whether to 'ignore', 'warn' or 'raise' errors, should be str
     :return: data - Any
     """
