@@ -100,7 +100,7 @@ def showBoxes(img, bboxes):
     img.save("output.png")
 
 
-def displayText(raw_image: Image, bboxes: list, text: list) -> Image:
+def displayText(raw_image: Image, bboxes: list, words: list) -> Image:
     """
     Draws the extracted words to a black canvas, then saves the image for
     visual comparisons.
@@ -108,14 +108,21 @@ def displayText(raw_image: Image, bboxes: list, text: list) -> Image:
     :param raw_image: Single page image from a document, should be an Image
     :param bboxes: Bounding boxes of each extracted word from page, should
     be a list[list[x1, y1, x2, y2]]
-    :param text: The extracted words form page, should be list[str]
+    :param words: The extracted words form page, should be list[str]
     :return: img - Image
     """
     img = Image.new(size=(raw_image.width, raw_image.height), mode="RGB", color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype("Roboto-Regular.ttf", 16)
-    for i, box in enumerate(bboxes):
-        draw.text((box[0], box[1]), text[i], (0, 0, 0), font=font)
+    for box, word in zip(bboxes, words):
+        fontsize = 1  # starting font size
+        font = ImageFont.truetype("Roboto-Regular.ttf", fontsize)
+        box_length = box[2] - box[0]
+        while font.getlength(word) < box_length:
+            fontsize += 1
+            font = ImageFont.truetype("Roboto-Regular.ttf", fontsize)
+        font = ImageFont.truetype("Roboto-Regular.ttf", fontsize-1)
+        draw.text((box[0], box[1]), word, (0, 0, 0), font=font)
+        draw.rectangle(tuple(box), fill=None, outline='red')
     return img
 
 
