@@ -118,6 +118,21 @@ def sepPath(path_: str, direction: str = 'lr', max_split: int = 1) -> tuple:
     return '\\'.join(left), '\\'.join(right)
 
 
+def getLastPath(path_: str, include_ext: bool = True) -> str:
+    """
+    Separates the last path from the given path and includes the option
+    to remove file extension.
+
+    :param path_: Path to a folder or file, should be a str
+    :param include_ext: Whether to include file extension, should be a bool
+    :return: last_path - str
+    """
+    last_path = sepPath(path_, direction='rl', max_split=1)[0]
+    if not include_ext:
+        return os.path.splitext(last_path)[0]
+    return last_path
+
+
 def update(obj: object, kwargs: dict) -> object:
     """
     Update the objects attributes, if given attributes are present
