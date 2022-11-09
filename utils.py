@@ -68,7 +68,7 @@ def makePath(path_: str, *paths, errors: str = 'ignore') -> str:
     return path_
 
 
-def listPath(path_: str, *paths, ext: list | tuple | str = '', return_file_path: bool = False,
+def listPath(path_: str, *paths, ext: str | list | tuple = '', return_file_path: bool = False,
              errors: str = 'raise') -> tuple:
     """
     Join the paths together, return list of files within directory or
@@ -76,7 +76,7 @@ def listPath(path_: str, *paths, ext: list | tuple | str = '', return_file_path:
 
     :param path_: Main file path, should be a str
     :param paths: Remaining file paths, should be a tuple[str]
-    :param ext: File extension, should be a list | tuple | str
+    :param ext: File extension, should be a str | list | tuple
     :param return_file_path: Whether to return file name or file path, should be a bool
     :param errors: Whether to 'ignore', 'warn' or 'raise' errors, should be str
     :return: path_, files - tuple[str, list[str]]
@@ -85,13 +85,18 @@ def listPath(path_: str, *paths, ext: list | tuple | str = '', return_file_path:
         raise ValueError("The parameter errors must be either 'ignore', 'warn' or 'raise'")
 
     if isinstance(ext, str):
-        ext = [ext]
+        ext = ext.replace('.', '')
+    elif isinstance(ext, tuple) or isinstance(ext, list):
+        ext = [i.replace('.', '') for i in ext]
+    else:
+        raise TypeError(f"'ext': Expected type 'str', 'list' or 'tuple', got: '{type(ext).__name__}'")
 
     path_, exist = checkPath(path_, *paths, errors=errors)
 
     files = []
     for file in os.listdir(path_):
-        if os.path.splitext(file)[1].replace('.', '') in ext:
+        file_ext = os.path.splitext(file)[1].replace('.', '')
+        if not ext or file_ext in ext:
             files.append(joinPath(path_, file) if return_file_path else file)
     return path_, files
 
@@ -127,7 +132,7 @@ def getLastPath(path_: str, include_ext: bool = True) -> str:
     :param include_ext: Whether to include file extension, should be a bool
     :return: last_path - str
     """
-    last_path = sepPath(path_, direction='rl', max_split=1)[0]
+    last_path = sepPath(path_, direction='rl', max_split=1)[1]
     if not include_ext:
         return os.path.splitext(last_path)[0]
     return last_path
