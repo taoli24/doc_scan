@@ -44,13 +44,13 @@ def convertDataset(dataset_dir: str, save_dir: str, overwrite: bool = False, **k
     :return: None
     """
     for document_dir in utils.listPath(dataset_dir, ext=['pdf', 'PDF'], return_file_path=True)[1]:
-        document_name = utils.sepPath(document_dir, direction='rl', max_split=1)[1]
+        document_name = utils.getLastPath(document_dir)
         pdf2png_path, exist = utils.checkPath(save_dir, "pdf2img", os.path.splitext(document_name)[0],
                                               errors='ignore')
         if not exist or overwrite:
             print('converting document:', document_name)
             convertPDF(document_dir, pdf2png_path, **kwargs)
-    print('Files converted and saved!')
+    print('Documents have been converted and saved!')
 
 
 def convertPDF(document_dir: str, pdf2img_path: str, ext: str = 'png') -> None:
@@ -70,6 +70,21 @@ def convertPDF(document_dir: str, pdf2img_path: str, ext: str = 'png') -> None:
         image.save(utils.joinPath(pdf2img_path, f"page-{pg_num}", ext=ext))
 
 
+def rescaleBBoxes(img: Image, bboxes: list) -> list:
+    """
+    Rescales the bounding boxes.
+
+    :param img: The document page, should be an Image
+    :param bboxes: The documents bounding boxes, should be a list[list[int | float]]
+    :return: bboxes - list[list[int | float]]
+    """
+    w_scale, h_scale = img.width / 1000, img.height / 1000
+    for box in bboxes:
+        box[0], box[2] = box[0] * w_scale, box[2] * w_scale
+        box[1], box[3] = box[1] * h_scale, box[3] * h_scale
+    return bboxes
+
+
 def showBoxes(img, bboxes):
     """
     Modify the passed in image and display bounding boxes detected by kraken on the image
@@ -78,22 +93,11 @@ def showBoxes(img, bboxes):
     :return img: Modified PIL.Image object
     """
     from PIL import ImageDraw
-    # print(image.width, image.height)
-    h_scale = img.height / 1000
-    w_scale = img.width / 1000
-
-    bboxes = bboxes[0]
-
-    for box in bboxes:
-        box[0], box[2] = box[0] * w_scale, box[2] * w_scale
-        box[1], box[3] = box[1] * h_scale, box[3] * h_scale
-
     # Draw bounding boxed onto the image
     draw_object = ImageDraw.Draw(img)
     for box in bboxes:
         draw_object.rectangle(tuple(box), fill=None, outline='red')
     img.save("output.png")
-    return bboxes
 
 
 def displayText(raw_image: Image, bboxes: list, text: list) -> Image:
@@ -137,8 +141,8 @@ def testTransformers():
     encoding = feature_extractor(image, do_resize=False, size={"width": image.width, "height": image.height})
 
     for page in range(len(encoding['words'])):
-
-        bboxes = showBoxes(image, encoding["boxes"][page])
+        bboxes = rescaleBBoxes(image, encoding["boxes"][page])
+        showBoxes(image, bboxes)
 
         text_img = displayText(image, bboxes, encoding['words'][page])
         text_img.save("extracted_text.png")
