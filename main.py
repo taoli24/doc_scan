@@ -85,33 +85,33 @@ def rescaleBBoxes(img: Image, bboxes: list) -> list:
     return bboxes
 
 
-def showBoxes(img, bboxes):
+def showBoxes(img, bboxes) -> Image:
     """
     Modify the passed in image and display bounding boxes detected by kraken on the image
-    :param img: A PIL.Image object
-    :param bboxes: bounding boxes
+    :param img: Single page image from a document, should be an Image
+    :param bboxes: Bounding boxes of each extracted word from page, should
+    be a list[list[x1, y1, x2, y2]]
     :return img: Modified PIL.Image object
     """
-    from PIL import ImageDraw
     # Draw bounding boxed onto the image
     draw_object = ImageDraw.Draw(img)
     for box in bboxes:
         draw_object.rectangle(tuple(box), fill=None, outline='red')
-    img.save("output.png")
 
 
-def displayText(raw_image: Image, bboxes: list, words: list) -> Image:
+def displayText(raw_img_dims: tuple, bboxes: list, words: list, show_bboxes: bool = True) -> Image:
     """
     Draws the extracted words to a black canvas, then saves the image for
     visual comparisons.
 
-    :param raw_image: Single page image from a document, should be an Image
+    :param raw_img_dims: Dimensions of a single page image, should be a tuple
     :param bboxes: Bounding boxes of each extracted word from page, should
     be a list[list[x1, y1, x2, y2]]
     :param words: The extracted words form page, should be list[str]
+    :param show_bboxes: Whether to show the bounding boxes, should be a bool
     :return: img - Image
     """
-    img = Image.new(size=(raw_image.width, raw_image.height), mode="RGB", color=(255, 255, 255))
+    img = Image.new(size=raw_img_dims, mode="RGB", color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     for box, word in zip(bboxes, words):
         fontsize = 1  # starting font size
@@ -122,12 +122,12 @@ def displayText(raw_image: Image, bboxes: list, words: list) -> Image:
             font = ImageFont.truetype("Roboto-Regular.ttf", fontsize)
         font = ImageFont.truetype("Roboto-Regular.ttf", fontsize-1)
         draw.text((box[0], box[1]), word, (0, 0, 0), font=font)
-        draw.rectangle(tuple(box), fill=None, outline='red')
+        if show_bboxes:
+            draw.rectangle(tuple(box), fill=None, outline='red')
     return img
 
 
 def exportJson(words, bboxes, output_file):
-    import json
     result = []
     for i, box in enumerate(bboxes):
         result.append({
@@ -142,19 +142,20 @@ def exportJson(words, bboxes, output_file):
 
 def testTransformers():
     # Document can be a png, jpg, etc. PDFs must be converted to images.
-    image = Image.open("./invoice.png").convert("RGB")
+    image = Image.open("test/invoice.png").convert("RGB")
 
     feature_extractor = LayoutLMv3FeatureExtractor()
     encoding = feature_extractor(image, do_resize=False, size={"width": image.width, "height": image.height})
 
-    for page in range(len(encoding['words'])):
-        bboxes = rescaleBBoxes(image, encoding["boxes"][page])
-        showBoxes(image, bboxes)
+    page = 0
+    bboxes = rescaleBBoxes(image, encoding["boxes"][page])
+    showBoxes(image, bboxes)
+    image.save("test/output.png")
 
-        text_img = displayText(image, bboxes, encoding['words'][page])
-        text_img.save("extracted_text.png")
+    text_img = displayText(image.size, bboxes, encoding['words'][page], show_bboxes=False)
+    text_img.save("test/extracted_text.png")
 
-        exportJson(encoding['words'][0], bboxes, "output.json")
+    exportJson(encoding['words'][page], bboxes, "test/output.json")
 
 
 def main():
