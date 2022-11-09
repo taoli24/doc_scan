@@ -160,23 +160,35 @@ def testTransformers():
 
 def main():
     # testDocquery()
-    testTransformers()
+    # testTransformers()
+    dir_ = "C:\\Users\\green\\Desktop\\Xaana.ai"
+    dataset_dir = utils.joinPath(dir_, 'invoice datatset\\CASA')
+    results_dir = utils.makePath(dir_, 'doc_scan\\results')
 
-    # dir_ = "C:\\Users\\green\\Desktop\\Xaana.ai"
-    # dataset_dir = utils.joinPath(dir_, 'invoice datatset\\CASA')
-    # results_dir = utils.makePath(dir_, 'doc_scan\\results')
-    #
-    # convertDataset(dataset_dir, results_dir, ext='png')
-    #
-    # image = Image.open("./invoice.png").convert("RGB")
-    # with open("output.json", mode="r") as file:
-    #     data = json.load(file)
-    #
-    # bboxes, words = [], []
-    # for i in data:
-    #     bboxes.append(i['bboxes'])
-    #     words.append(i['text'])
-    # displayText(image, bboxes, words)
+    convertDataset(dataset_dir, results_dir, overwrite=False, ext='png')
+
+    for document_dir in utils.listPath(dataset_dir, ext=['pdf', 'PDF'], return_file_path=True)[1]:
+        document_name = utils.getLastPath(document_dir, include_ext=False)
+        outputs_dir = utils.makePath(results_dir, 'layoutml_outputs', document_name)
+        print("Processing document:", document_name)
+        for page_dir in utils.listPath(results_dir, 'pdf2img', document_name, return_file_path=True)[1]:
+            img_dir, exist = utils.checkPath(page_dir, ext='png')
+            if exist:
+                image = Image.open(img_dir).convert("RGB")
+
+                feature_extractor = LayoutLMv3FeatureExtractor()
+                encoding = feature_extractor(image, do_resize=False,
+                                             size={"width": image.width, "height": image.height})
+
+                page = 0  # scanning 1 page at a time
+                bboxes = rescaleBBoxes(image, encoding["boxes"][page])
+                showBoxes(image, bboxes)
+                image.save(utils.joinPath(outputs_dir, "bboxes_on_raw.png"))
+
+                text_img = displayText(image.size, bboxes, encoding['words'][page])
+                text_img.save(utils.joinPath(outputs_dir, "extracted_text.png"))
+
+                exportJson(encoding['words'][page], bboxes, utils.joinPath(outputs_dir, "extracted_text.json"))
 
 
 if __name__ == "__main__":
